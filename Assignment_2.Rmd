@@ -1,0 +1,287 @@
+---
+title: 'Assignment 02: Data wrangling with R'
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-05-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r the library}
+library(dplyr)    
+library(ggplot2)
+library(tidyr)    
+library(lubridate)
+library(stringr)
+library(readxl)
+
+```
+
+#Part 1
+
+##1.1
+
+The  code snippet gives an account for the loading of the “MaturityType” dataset into the R Studio. After loading the dataset, a summary of the dataset is visualized with the help of the “summary(show)” function.
+
+```{r the datasets}
+maturity_type <- read.csv("D:/MaturityType.csv", stringsAsFactors = FALSE)
+show <- read.csv("D:/show.csv", stringsAsFactors = FALSE)
+```
+
+```{r Rename columns to remove spaces}
+colnames(maturity_type) <- str_replace_all(colnames(maturity_type), " ", "")
+colnames(show) <- str_replace_all(colnames(show), " ", "")
+```
+
+```{r Summary of show dataframe}
+summary(show)
+```
+The above code snippet gives an account for visualizing the summary of the considered dataset. In the above snippet, it is evident that the dataset is categorized with the help of certain attributes like, “Show. ID”, “Title”, “Description”, “Director”, “Genres”, “Cast” and many others. Different kinds of information are contained in the attributes like length, class, and mode. The release date attribute contains the calculated Min, Median, and Max values. 
+
+##1.2
+
+```{r Check for duplicated rows}
+duplicated_rows <- duplicated(show)
+num_duplicates <- sum(duplicated_rows)
+cat("Number of duplicated rows:", num_duplicates, "\n")
+```
+The above code snippet demonstrates the visualization of duplicate rows. The “duplicated()” function is used to identify the duplicate rows in the “show” data frame. The “cat” function is used to print the count of duplicate rows into the console.
+
+```{r Display duplicated rows}
+duplicated_rows <- show[duplicated(show), ]
+cat(paste("Number of duplicate rows:", nrow(duplicated_rows), "\n"))
+if (nrow(duplicated_rows) > 0) {
+  cat("Duplicate rows:\n")
+  print(duplicated_rows)
+  show <- unique(show)
+  cat(paste("Number of rows after removing duplicates:", nrow(show), "\n"))
+}
+```
+The above image gives an account of the number of duplicate rows contained in the maturity dataset. In context to the above image, it is evident that there are five duplicate rows and these duplicate rows are removed. After the removal, it is witnessed that the total count of rows amounts to 4463.
+
+```{r Modify IMDB score}
+show$Imdb.Score <- gsub("/10", "", show$Imdb.Score)
+show$Imdb.Score <- as.numeric(show$Imdb.Score)
+```
+The above code snippet shows that the IMDB score contained character data which is converted to numeric data using the “as. numeric” function. 
+
+##1.3
+
+```{r Select a country and year of interest}
+country_of_interest <- "United States"
+year_of_interest <- 2021
+
+```
+```{r Filter shows produced by the selected country}
+shows_filtered <- show %>%
+  filter(Production.Country == country_of_interest & Release.Date == year_of_interest & Rating == "TV-MA")
+print(shows_filtered$Title)
+```
+
+The above code snippet demonstrates the selection of the appropriate country for the sake of executing this study. The image evidences that the selected country is “The United States” and the year of consideration is “2021”. After that filters are implemented to choose the appropriate shows pertaining to the aforesaid country and date. The above code snippet signifies the visualization of the TV shows based on the selected country and date. The nature of the TV shows above depicted is for mature audiences only. Some of the shows, visualized are, “Age of Samurai: Battle of Japan”, “Love, Death and Robots” and many others.
+
+##1.4.
+
+```{r teen_high_school}
+teen_high_school <- show %>% 
+  filter(grepl("teen", Description, ignore.case = TRUE) & 
+           grepl("high school", Description, ignore.case = TRUE)) %>% 
+  select(Title, Release.Date, `Imdb.Score`) %>% 
+  arrange(Release.Date, desc(`Imdb.Score`)) %>% 
+  head(5)
+teen_high_school
+
+```
+The above code snippet demonstrates the visualization and selection of TV shows that are appropriate for adolescents. The shows are filtered and selected on the basis of location, IMDB score, and nature. The “filter” function is utilized in the course of this selection.
+
+##1.5
+
+```{r subset the data for TV shows suitable for general audiences}
+tv_g_shows <- show %>% filter(Rating == "TV-G")
+country_counts <- tv_g_shows %>% count(Production.Country, sort = TRUE)
+top_countries <- country_counts$Production.Country[1:3]
+cat("Top three production countries with the highest number of TV shows that are suitable for general audiences:\n")
+for (country in top_countries) {
+  cat(country, "\n")
+}
+```
+In the above code snippet it is evident that three countries are selected on the basis of the maximum TV shows it offers for general audiences. The shows are filtered using the “filter” function and only those shows catering to general audiences are selected.
+
+
+
+##1.6
+
+```{r pressure, echo=FALSE}
+show_filtered <- show %>%
+  filter(str_detect(Content.Type, "Movie") & Release.Date >= 2010)
+show_filtered <- show_filtered %>%
+  filter(Production.Country %in% c("United States", "Canada"))
+ggplot(show_filtered, aes(x = Production.Country, y = Imdb.Score)) +
+  geom_boxplot() +
+  ggtitle("Distribution of IMDB Scores for Movies Produced After 2010") +
+  ylab("IMDB Score") +
+  xlab("Production Country")
+```
+The above code snippet gives an account for comparing the IMDB scores of the TV shows. The “ggplot” function is utilized to visualize the comparison using Boxplot. The above figure visualizes the comparison of the IMDB scores using a Box plot. The Box plot representation interprets that the IMDB scores of Canada are positively skewed, while the IMDB scores for the United States are symmetrically distributed.
+
+##1.7
+
+```{r Filter for movies suitable for children less than 7 years old}
+age_appropriate <- show %>%
+  filter(Rating == "G" | Rating == "PG") %>%
+  filter(Release.Date >= 2010)
+
+# Rank by educational value
+educational_value <- age_appropriate %>%
+  mutate(EducationalValue = (Imdb.Score) / 2) %>%
+  select(Title, EducationalValue) %>%
+  arrange(desc(EducationalValue))
+
+# Get top 5 movies
+top_movies <- head(educational_value, 5)
+top_movies
+```
+
+Here, in this above figure, the visualization of the appropriate movies has been represented and the rank of the movies has been shown by the educational value. According to that the five top movies have been represented in accordance to their educational value. The educational value of the 1st movie is 3.95 and the fifth movie’s educational value is 3.75.
+
+
+#Part 2
+
+##2.1
+
+
+```{r pressure, echo=FALSE}
+# Read the dataset
+data <- read_excel("D:/Production.xlsx", sheet = 1)
+
+# Drop the first two rows
+data <- data[-c(1,2),]
+
+# View the transformed dataset
+data
+```
+The above figure demonstrates the loading of the first sheet of the dataset into the R studio. It is evident from the image that the data set is in “.xlsx” format and the first two rows of the dataset are dropped to exclude the inappropriate values containing headings.The above code snippet gives an account of the visualization of the average movie ratings for each production country and maturity type. It is evident from the image that the production houses are basically from “Argentina”. The maximum average ratings are witnessed for “TV-MA” of Argentina, ranging from 8 to 6.1 out of 10.
+
+
+##2.2
+
+```{r pressure, echo=FALSE}
+# Use pivot_longer to transform the dataset
+data_long <- data %>% 
+  pivot_longer(cols = -1, names_to = "Year", values_to = "Value", values_drop_na = TRUE)
+
+# View the transformed dataset
+data_long
+```
+Here, in the above figure, the transformation of the dataset has been done with the help of the Pivot Longer function. Here the cols have been changed to -1, names_to has been changed to “Year” and values_to has been changed to “Value”. The above snippet demonstrates the output of the transformed data using pivot longer. In the above case, the aforesaid function is used to increase the length of the dataset by increasing the number of rows and decreasing the number of columns. Only three rows are considered, namely “Average Movie Rating for each production country and maturity type”, “Year” and “Value”.
+
+
+```{r pressure, echo=FALSE}
+df_longer_split <- data_long %>%
+  separate(col = "Average Movie Rating for each Production Country and Maturity Type",
+           into = c("Production Country", "Maturity Type"),
+           sep = "/")
+```
+According to the requirement of the task here, the code has been represented that helps to split the first two columns. The first two columns are “Production Country” and “Maturity Type”.
+
+
+```{r pressure, echo=FALSE}
+df_longer_split <- df_longer_split %>%
+  separate(col = "Value",
+           into = c("NumProducts", "Score"),
+           sep = " - ") %>%
+  mutate(Score = str_remove(Score, "/10"),
+         NumProducts = as.integer(NumProducts),
+         Score = as.numeric(Score))
+```
+```{r Display the number of columns and rows}
+dim(df_longer_split)
+```
+```{r Show the number of distinct countries and distinct years.}
+length(unique(df_longer_split$`Production Country`))
+length(unique(df_longer_split$Year))
+```
+The above code snippet records the visualization of the dimensions of the dataset. The “dim” function is utilized above to set the dimension of the matrix to 1*2.
+
+##2.3
+
+
+```{r pressure, echo=FALSE}
+df_longer_split$Year = as.character(df_longer_split$Year)
+df_longer_split$Year[df_longer_split$Year == "...2"] = 2017
+df_longer_split$Year[df_longer_split$Year == "...3"] = 2018
+df_longer_split$Year[df_longer_split$Year == "...4"] = 2019
+df_longer_split$Year[df_longer_split$Year == "...5"] = 2020
+df_longer_split$Year[df_longer_split$Year == "...6"] = 2021
+df_longer_split$Year = as.numeric(df_longer_split$Year)
+```
+```{r Filter the data for year 2021 and score between 6.8 and 7.0}
+df_filtered <- df_longer_split %>%
+  filter(Year == "2021", between(Score, 6.8, 7.0))
+df_grouped <- df_filtered %>%
+  group_by("Production Country") %>%
+  summarize(avg_score = mean(Score))
+df_result <- df_grouped %>%
+  filter(between(avg_score, 6.8, 7.0))
+# View the results
+df_result
+```
+Here, the code block for filtering all the data for the year 2021 has been shown. Also, the data has been grouped by production country to calculate the mean score. After that, the code block has been used to filter the data for the countries that have an average score between 6.8 AND 7.0. The obtained average score of the production country is 6.9.
+
+
+##2.4
+
+```{r Load the data from the "Continent" worksheet}
+continent <- read_excel("D:/Production.xlsx", sheet = 2)
+colnames(continent) <- c("Country", "Continent")
+continent <- continent[-c(1,2),]
+# View the data
+continent
+```
+The above code snippet gives an account of the loading of the dataset from the “Content Worksheet” which is basically the second Excel sheet. It is evident from the above image that “colname()” function is utilized to provide column names to the “continent” data. The column names are “Continent” and “ Country”. Here, the countries’ name has been represented by their continents after the filtering process. 
+
+##2.5 
+
+```{r Filter the data to only include Asian countries}
+# Filter the data to only include Asian countries
+asian_data <- continent %>% 
+  filter(Continent == "Asia")
+
+# Rank the countries based on the total number of productions
+asian_data_ranked <- asian_data %>% 
+  group_by(Country) %>% 
+  summarise(Total_Productions = sum(df_longer_split$NumProducts)) %>% 
+  arrange(desc(Total_Productions))
+
+# Select the top 5 countries
+top_five <- asian_data_ranked %>% 
+  top_n(5)
+top_five
+```
+The criterion proposed for the purpose of ranking Asian countries for Netflix's market expansion is founded on the subsequent factors:
+The accessibility of Netflix services to the population and the potential customer base is positively correlated with the rate of internet penetration. The Gross Domestic Product (GDP) per capita of a nation is a crucial factor in assessing its viability as a potential market. A positive correlation exists between GDP per capita and the purchasing power of the population to subscribe to Netflix.
+The level of proficiency in the English language has a direct correlation with the potential customer base for Netflix, given that English is the primary language used by the platform. The above code snippet records the filtration of the data only to include TV shows from Asian countries. The “filter” function from the “dplyr” package is used to subset the “asian_data” data frame and to only incorporate those rows which contain the “Continent” columns as “Asia”.
+
+
+```{r pressure, echo=FALSE}
+
+# Create the bar chart
+ggplot(data = top_five, aes(x = reorder(Country, Total_Productions), y = Total_Productions, fill = Country)) + 
+  geom_col() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) + 
+  labs(x = "Country", y = "Total Number of Productions", title = "Top 5 Asian Countries by Total Number of Productions")
+
+```
+
+
+In the above figure, the countries that are included in Asia have been represented. The total production of each of the Asian countries has been shown in this particular picture.In accordance with the number of productions, the name of the top Asian countries has been represented in the above figure. 
+
+#Bibliography
+Kasica, S., Berret, C. and Munzner, T., 2020. Table scraps: an actionable framework for multi-table data wrangling from an artifact study of computational journalism. IEEE Transactions on visualization and computer graphics, 27(2), pp.957-966.
+Shrestha, N., Barik, T. and Parnin, C., 2021, October. Unravel: A fluent code explorer for data wrangling. In The 34th Annual ACM Symposium on User Interface Software and Technology (pp. 198-207).
+Sundin, L., 2022. Graphical scaffolding for the learning of data wrangling APIs (Doctoral dissertation, University of Glasgow).
+Xiong, K., Fu, S., Ding, G., Luo, Z., Yu, R., Chen, W., Bao, H. and Wu, Y., 2022. Visualizing the scripts of data wrangling with SOMNUS. arXiv preprint arXiv:2209.13981.
+Martins, R., Chen, J., Chen, Y., Feng, Y. and Dillig, I., 2019. Trinity: An extensible synthesis framework for data science. Proceedings of the VLDB Endowment, 12(12), pp.1914-1917.
